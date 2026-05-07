@@ -71,7 +71,7 @@ export function initThreeScene() {
     scene.add(dirLight);
 
     // Using purple split from design: Core, mid, highlight
-    const coreLight = new THREE.PointLight(0x7C3AED, 2.5); // Core deep purple
+    const coreLight = new THREE.PointLight(0xffffff, 1.0); // Neutralized core
     coreLight.position.set(0, -3, 2);
     scene.add(coreLight);
 
@@ -79,13 +79,13 @@ export function initThreeScene() {
     highlightLight.position.set(-3, 2, 3);
     scene.add(highlightLight);
 
-    const midLight = new THREE.PointLight(0xB4A6F5, 1.0); // Soft purple
+    const midLight = new THREE.PointLight(0xffffff, 0.5); // Neutralized mid
     midLight.position.set(3, 4, 1);
     scene.add(midLight);
 
     const parallaxGroup = new THREE.Group();
     // Default position and tilt for Hero section
-    parallaxGroup.position.set(2.2, 0, 0); 
+    parallaxGroup.position.set(1.6, 0, 0); 
     parallaxGroup.rotation.set(0.6, 0.25, 0);
     parallaxGroup.scale.set(0.6, 0.6, 0.6);
     scene.add(parallaxGroup);
@@ -96,24 +96,28 @@ export function initThreeScene() {
     const yOffsetGroup = new THREE.Group();
     stackGroup.add(yOffsetGroup);
 
-    // Rounded-edge slab geometry via ExtrudeGeometry
+    // Rounded Square shape
     const rrShape = new THREE.Shape();
-    const rw = 1.4, rh = 1.4, rr = 0.35; // Slightly larger corner radius
-    rrShape.moveTo(-rw + rr, -rh);
-    rrShape.lineTo(rw - rr, -rh);
-    rrShape.quadraticCurveTo(rw, -rh, rw, -rh + rr);
-    rrShape.lineTo(rw, rh - rr);
-    rrShape.quadraticCurveTo(rw, rh, rw - rr, rh);
-    rrShape.lineTo(-rw + rr, rh);
-    rrShape.quadraticCurveTo(-rw, rh, -rw, rh - rr);
-    rrShape.lineTo(-rw, -rh + rr);
-    rrShape.quadraticCurveTo(-rw, -rh, -rw + rr, -rh);
+    const width = 2.4;
+    const height = 2.4;
+    const radius = 0.4;
+    const x = -width / 2;
+    const y = -height / 2;
     
-    // Increased bevel thickness/size softly rounds the top/bottom edges
-    // creating a pillowed look around the perimeter without losing the overall structural flatness.
+    rrShape.moveTo(x, y + radius);
+    rrShape.lineTo(x, y + height - radius);
+    rrShape.quadraticCurveTo(x, y + height, x + radius, y + height);
+    rrShape.lineTo(x + width - radius, y + height);
+    rrShape.quadraticCurveTo(x + width, y + height, x + width, y + height - radius);
+    rrShape.lineTo(x + width, y + radius);
+    rrShape.quadraticCurveTo(x + width, y, x + width - radius, y);
+    rrShape.lineTo(x + radius, y);
+    rrShape.quadraticCurveTo(x, y, x, y + radius);
+    
+    // Adjusted depth and bevel to ensure engravings sit perfectly on the surface
     const geometry = new THREE.ExtrudeGeometry(rrShape, {
-      depth: 0.08, bevelEnabled: true, bevelThickness: 0.06,
-      bevelSize: 0.06, bevelSegments: 6
+      depth: 0.15, bevelEnabled: true, bevelThickness: 0.05,
+      bevelSize: 0.05, bevelSegments: 12
     });
     geometry.rotateX(-Math.PI / 2);
     geometry.center();
@@ -122,24 +126,25 @@ export function initThreeScene() {
       return new THREE.MeshPhysicalMaterial({
         color: tint,
         roughness: 0.1,
-        metalness: 0.15,
-        transmission: 0.85, 
+        metalness: 0.1,
+        transmission: 0.9, 
         transparent: true,
-        opacity: 0.95,
-        thickness: 0.3,
-        ior: 1.5,
+        opacity: 1.0,
+        thickness: 0.5,
+        ior: 1.4,
         clearcoat: 1.0,
-        clearcoatRoughness: 0.05,
+        clearcoatRoughness: 0.02,
         side: THREE.DoubleSide
       });
     }
 
-    // Material colors mapped to Solar Dust split
-    const matBottom = createGlassMat('#3b0764');  // Deepest purple
-    const matMiddle = createGlassMat('#6b21a8');  // Mid purple
-    const matTop = createGlassMat('#d8b4fe');     // Light highlight purple
+    // Material colors mapped to Vibrant Theme
+    const matBottom = createGlassMat('#00E3FF');  // Bright Cyan
+    const matMiddle = createGlassMat('#9333ea');  // Vibrant Purple
+    const matTop = createGlassMat('#ffffff');     // Bright White/Glass
 
     // Engraved Icons
+
     function drawIconTex(type: string) {
       const cvs = document.createElement('canvas');
       cvs.width = 512; cvs.height = 512;
@@ -261,24 +266,20 @@ export function initThreeScene() {
 
     function createTier(type: string, yInit: number, edgeColor: string, lightColor: number, tileMat: THREE.Material) {
       const mesh = new THREE.Mesh(geometry, tileMat);
+
       const yRotGroup = new THREE.Group();
       yRotGroup.position.set(0, yInit, 0);
       yRotGroup.add(mesh);
-
-      const edges = new THREE.EdgesGeometry(geometry, 15);
-      const edgeMat = new THREE.LineBasicMaterial({ color: edgeColor, transparent: true, opacity: 0.8 });
-      const edgeLine = new THREE.LineSegments(edges, edgeMat);
-      mesh.add(edgeLine);
 
       let donutGroup: THREE.Group | null = null; // Keep null var so it doesn't break other code
 
       const tex = drawIconTex(type);
       const pMat = new THREE.MeshBasicMaterial({ map: tex, transparent: true, opacity: 0.65, depthWrite: false, side: THREE.FrontSide });
       const plane = new THREE.Mesh(planeGeo, pMat);
-      plane.position.y = 0.101; 
+      plane.position.y = 0.126; 
       
       const backPlane = new THREE.Mesh(planeGeo, pMat);
-      backPlane.position.y = -0.101;
+      backPlane.position.y = -0.126;
       backPlane.rotation.x = Math.PI;
       backPlane.rotation.z = Math.PI;
 
@@ -287,7 +288,7 @@ export function initThreeScene() {
         backPlane.visible = false;
         
         donutGroup = new THREE.Group();
-        donutGroup.position.y = 0.105;
+        donutGroup.position.y = 0.130;
         donutGroup.rotation.x = -Math.PI / 2;
         
         const slices = [
@@ -317,16 +318,12 @@ export function initThreeScene() {
         const crossTex = drawIconTex('cross');
         const crossMat = new THREE.MeshBasicMaterial({ map: crossTex, transparent: true, opacity: 0.65, depthWrite: false });
         crossPlane = new THREE.Mesh(planeGeo, crossMat);
-        crossPlane.position.y = 0.17;
+        crossPlane.position.y = 0.127;
         mesh.add(crossPlane);
       }
 
-      const glowLight = new THREE.PointLight(lightColor, 0, 3.0);
-      glowLight.position.y = 1.0;
-      mesh.add(glowLight);
-
       yOffsetGroup.add(yRotGroup);
-      return { mesh, yRotGroup, pMat, glowLight, tileMat, edgeMat, iconPlane: plane, crossPlane, donutGroup };
+      return { mesh, yRotGroup, pMat, glowLight: null, tileMat, iconPlane: plane, crossPlane, donutGroup };
     }
 
     // Solar Dust glowing purples
@@ -374,7 +371,7 @@ export function initThreeScene() {
     const techGroup = new THREE.Group();
 
     const particlesGeo = new THREE.BufferGeometry();
-    const particleCount = window.innerWidth < 768 ? 60 : 120; // reduced to avoid jumbling
+    const particleCount = window.innerWidth < 768 ? 100 : 250; // reduced to avoid jumbling
     const posArray = new Float32Array(particleCount * 3);
     const velArray = new Float32Array(particleCount * 3);
     
@@ -395,10 +392,10 @@ export function initThreeScene() {
     particlesGeo.setAttribute('aOffset', new THREE.BufferAttribute(offsetArray, 1));
     
     const particlesMat = new THREE.PointsMaterial({
-      size: 0.25, // larger to show tech glyphs
+      size: 0.35, // larger to show tech glyphs
       color: 0xffffff, 
       transparent: true,
-      opacity: 0.6,
+      opacity: 0.9,
       blending: THREE.NormalBlending,
       map: createTechTexture(),
       depthWrite: false
@@ -485,6 +482,12 @@ export function initThreeScene() {
         endTrigger: '.scrolly-wrapper',
         end: 'bottom bottom',
         scrub: 1,
+        snap: {
+          snapTo: [0, 10/41, 23/41, 35/41],
+          duration: 0.5,
+          delay: 0.1,
+          ease: "power2.inOut"
+        },
         onUpdate: (self) => {
           gsapScrollActive = self.progress > 0.01 && self.progress < 0.99;
         }
@@ -504,8 +507,6 @@ export function initThreeScene() {
     tl.to(matBottom, { opacity: 0.0, transmission: 0.0, duration: 5 }, 0);
     tl.to(tierMiddle.pMat, { opacity: 0, duration: 5 }, 0);
     tl.to(tierBottom.pMat, { opacity: 0, duration: 5 }, 0);
-    tl.to(tierMiddle.edgeMat, { opacity: 0.0, duration: 5 }, 0);
-    tl.to(tierBottom.edgeMat, { opacity: 0.0, duration: 5 }, 0);
 
     // Spread them out out of view
     tl.to(tileMiddle.position, { y: -10, duration: 5 }, 0);
@@ -513,21 +514,18 @@ export function initThreeScene() {
     
     // Bring top item forward
     tl.to(tileTop.position, { y: 0, duration: 10 }, 0);
-    tl.to(tierTop.glowLight, { intensity: 1.0, duration: 10 }, 0);
 
     // --- STEP 1 visible --- T=10 to T=19
     // TRANSITION S1 -> S2 at T=19 to 23
 
     tl.to(matTop, { opacity: 0.0, transmission: 0.0, duration: 4 }, 19);
     tl.to(tierTop.pMat, { opacity: 0, duration: 4 }, 19);
-    tl.to(tierTop.edgeMat, { opacity: 0.0, duration: 4 }, 19);
     tl.to(tileTop.position, { y: 10, duration: 4 }, 19);
 
     tl.to(tileMiddle.position, { y: 0, duration: 4 }, 19);
     tl.to(parallaxGroup.position, { x: -2.0, y: 0.0, z: 0.0, duration: 4 }, 19);
     tl.to(matMiddle, { opacity: 0.95, transmission: 0.2, duration: 4 }, 19);
     tl.to(tierMiddle.pMat, { opacity: 0.65, duration: 4 }, 19);
-    tl.to(tierMiddle.edgeMat, { opacity: 0.8, duration: 4 }, 19);
     if (tierMiddle.donutGroup) {
       tl.to(tierMiddle.donutGroup.userData, { progress: 1.0, duration: 8, ease: 'power2.out' }, 20);
     }
@@ -537,7 +535,6 @@ export function initThreeScene() {
 
     tl.to(matMiddle, { opacity: 0.0, transmission: 0.0, duration: 4 }, 31);
     tl.to(tierMiddle.pMat, { opacity: 0, duration: 4 }, 31);
-    tl.to(tierMiddle.edgeMat, { opacity: 0.0, duration: 4 }, 31);
     tl.to(tileMiddle.position, { y: 10, duration: 4 }, 31);
     if (tierMiddle.donutGroup) {
       tl.to(tierMiddle.donutGroup.userData, { progress: 0.0, duration: 4, ease: 'power2.in' }, 31);
@@ -547,13 +544,12 @@ export function initThreeScene() {
     tl.to(parallaxGroup.position, { x: -1.86, y: 0.29, z: 0.56, duration: 4 }, 31);
     tl.to(matBottom, { opacity: 0.95, transmission: 0.2, duration: 4 }, 31);
     tl.to(tierBottom.pMat, { opacity: 0.65, duration: 4 }, 31);
-    tl.to(tierBottom.edgeMat, { opacity: 0.8, duration: 4 }, 31);
 
     // --- STEP 3 visible --- T=35 to T=39
     // END ANIMATION - Fade out and return to hero transform at T=39 to 41
 
     tl.to(parallaxGroup.scale, { x: 0.6, y: 0.6, z: 0.6, duration: 2 }, 39);
-    tl.to(parallaxGroup.position, { x: 2.2, y: 0, z: 0, duration: 2 }, 39);
+    tl.to(parallaxGroup.position, { x: 1.6, y: 0, z: 0, duration: 2 }, 39);
     tl.to(parallaxGroup.rotation, { x: 0.6, y: 0.25, z: 0, duration: 2 }, 39);
 
     tl.to(tileBottom.position, { y: -0.15, duration: 2 }, 39);
@@ -570,9 +566,6 @@ export function initThreeScene() {
     }
     tl.to(tierBottom.pMat, { opacity: 0.65, duration: 2 }, 39);
     tl.to(tierTop.pMat, { opacity: 0.65, duration: 2 }, 39);
-    tl.to(tierMiddle.edgeMat, { opacity: 0.8, duration: 2 }, 39);
-    tl.to(tierBottom.edgeMat, { opacity: 0.8, duration: 2 }, 39);
-    tl.to(tierTop.edgeMat, { opacity: 0.8, duration: 2 }, 39);
     
     // Fade out canvas so it disappears when we leave the section
     tl.to(canvas, { opacity: 0, duration: 2 }, 39);
@@ -689,13 +682,13 @@ export function initThreeScene() {
 
       if (!gsapScrollActive) {
         if (isHovered) {
-          currentRotSpeed += (0 - currentRotSpeed) * 0.05;
-          const targetAngleY = (mouseX * 0.15);
-          currentAngleY += getShortestAngle(currentAngleY, targetAngleY) * 0.05;
-          const targetAngleX = -(mouseY * 0.12);
-          currentAngleX += (targetAngleX - currentAngleX) * 0.05;
+          currentRotSpeed += (0 - currentRotSpeed) * 0.1;
+          const targetAngleY = (mouseX * 0.5);
+          currentAngleY += getShortestAngle(currentAngleY, targetAngleY) * 0.1;
+          const targetAngleX = -(mouseY * 0.4);
+          currentAngleX += (targetAngleX - currentAngleX) * 0.1;
           
-          particlesMat.opacity += (0.9 - particlesMat.opacity) * 0.05;
+          particlesMat.opacity += (1.0 - particlesMat.opacity) * 0.1;
         } else {
           currentRotSpeed += (0.0015 - currentRotSpeed) * 0.02;
           currentAngleY += currentRotSpeed;
@@ -716,5 +709,76 @@ export function initThreeScene() {
     
     gsap.to(canvas, { opacity: 1, duration: 1 });
 
+    // --- DOM Animations utilizing bundled GSAP ---
+    document.querySelectorAll('.reveal').forEach(el => {
+      gsap.fromTo(el, 
+        { opacity: 0, y: 30 },
+        {
+          scrollTrigger: {
+            trigger: el,
+            start: 'top 85%',
+            toggleActions: 'play none none reverse'
+          },
+          opacity: 1,
+          y: 0,
+          duration: 0.8,
+          ease: 'power3.out'
+        }
+      );
+    });
+
+    document.querySelectorAll('.step-content-right').forEach(card => {
+      ScrollTrigger.create({
+        trigger: card.closest('.scrolly-step'),
+        start: 'top 60%',
+        end: 'bottom 40%',
+        onEnter: () => card.classList.add('opacity-100', 'translate-y-0'),
+        onLeave: () => card.classList.remove('opacity-100', 'translate-y-0'),
+        onEnterBack: () => card.classList.add('opacity-100', 'translate-y-0'),
+        onLeaveBack: () => card.classList.remove('opacity-100', 'translate-y-0'),
+      });
+    });
+
+    const nodes = document.querySelectorAll('.pipeline-node');
+    const segments = document.querySelectorAll('.pipeline-progress-segment');
+
+    nodes.forEach((node, i) => {
+      const nodeTimeline = gsap.timeline({
+        scrollTrigger: {
+          trigger: node,
+          start: 'top 65%',
+          end: 'top 45%',
+          scrub: true,
+        }
+      });
+      nodeTimeline.to(node, {
+        backgroundColor: '#ffffff',
+        color: '#0A051E',
+        borderColor: '#ffffff',
+      });
+
+      if (i < segments.length) {
+        const parent = segments[i].parentElement;
+        if (parent) {
+          const segmentTimeline = gsap.timeline({
+            scrollTrigger: {
+              trigger: parent,
+              start: 'top 50%',
+              end: 'bottom 50%',
+              scrub: true,
+            }
+          });
+          segmentTimeline.to(segments[i], {
+            scaleY: 1,
+            ease: 'none'
+          });
+        }
+      }
+    });
+
     }
-document.addEventListener('DOMContentLoaded', initThreeScene);
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initThreeScene);
+} else {
+  initThreeScene();
+}
